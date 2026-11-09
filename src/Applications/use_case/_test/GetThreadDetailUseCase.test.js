@@ -32,6 +32,7 @@ describe('GetThreadDetailUseCase', () => {
           date: '2021-08-08T07:22:33.555Z',
           content: 'sebuah comment',
           isDelete: false,
+          likeCount: 2,
         },
         {
           id: 'comment-456',
@@ -39,6 +40,7 @@ describe('GetThreadDetailUseCase', () => {
           date: '2021-08-08T07:26:21.338Z',
           content: 'komentar rahasia',
           isDelete: true,
+          likeCount: 0,
         },
       ]));
     mockReplyRepository.getRepliesByThreadId = vi.fn()
@@ -84,6 +86,7 @@ describe('GetThreadDetailUseCase', () => {
           date: '2021-08-08T07:22:33.555Z',
           content: 'sebuah comment',
           isDelete: false,
+          likeCount: 2,
           replies: [
             new DetailReply({
               id: 'reply-123',
@@ -107,12 +110,14 @@ describe('GetThreadDetailUseCase', () => {
           date: '2021-08-08T07:26:21.338Z',
           content: 'komentar rahasia',
           isDelete: true,
+          likeCount: 0,
           replies: [],
         }),
       ],
     }));
     expect(detailThread.comments[0].replies[0].content).toEqual('**balasan telah dihapus**');
     expect(detailThread.comments[1].content).toEqual('**komentar telah dihapus**');
+    expect(detailThread.comments[0].likeCount).toEqual(2);
     expect(mockThreadRepository.getThreadById).toBeCalledWith('thread-123');
     expect(mockCommentRepository.getCommentsByThreadId).toBeCalledWith('thread-123');
     expect(mockReplyRepository.getRepliesByThreadId).toBeCalledWith('thread-123');
