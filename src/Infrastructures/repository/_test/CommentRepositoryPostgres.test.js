@@ -1,3 +1,4 @@
+import LikesTableTestHelper from '../../../../tests/LikesTableTestHelper.js';
 import CommentsTableTestHelper from '../../../../tests/CommentsTableTestHelper.js';
 import ThreadsTableTestHelper from '../../../../tests/ThreadsTableTestHelper.js';
 import UsersTableTestHelper from '../../../../tests/UsersTableTestHelper.js';
@@ -15,6 +16,7 @@ describe('CommentRepositoryPostgres', () => {
   });
 
   afterEach(async () => {
+    await LikesTableTestHelper.cleanTable();
     await CommentsTableTestHelper.cleanTable();
     await ThreadsTableTestHelper.cleanTable();
     await UsersTableTestHelper.cleanTable();
@@ -160,6 +162,9 @@ describe('CommentRepositoryPostgres', () => {
         threadId: 'thread-456',
         owner: 'user-123',
       });
+      await LikesTableTestHelper.addLike({ id: 'like-123', commentId: 'comment-123', owner: 'user-123' });
+      await LikesTableTestHelper.addLike({ id: 'like-456', commentId: 'comment-123', owner: 'user-456' });
+      await LikesTableTestHelper.addLike({ id: 'like-789', commentId: 'comment-789', owner: 'user-123' });
       const commentRepositoryPostgres = new CommentRepositoryPostgres(pool, {});
 
       // Action
@@ -173,6 +178,7 @@ describe('CommentRepositoryPostgres', () => {
           date: '2021-08-08T07:22:33.555Z',
           content: 'komentar pertama',
           isDelete: false,
+          likeCount: 2,
         },
         {
           id: 'comment-456',
@@ -180,6 +186,7 @@ describe('CommentRepositoryPostgres', () => {
           date: '2021-08-08T07:26:21.338Z',
           content: 'komentar kedua',
           isDelete: true,
+          likeCount: 0,
         },
       ]);
     });

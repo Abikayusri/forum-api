@@ -23,6 +23,7 @@ describe('a DetailComment entity', () => {
       date: '2021-08-08T07:22:33.555Z',
       content: 'sebuah comment',
       isDelete: 'false',
+      likeCount: 0,
       replies: [],
     };
 
@@ -38,11 +39,47 @@ describe('a DetailComment entity', () => {
       date: '2021-08-08T07:22:33.555Z',
       content: 'sebuah comment',
       isDelete: false,
+      likeCount: 0,
       replies: 'bukan array',
     };
 
     // Action and Assert
     expect(() => new DetailComment(payload)).toThrowError('DETAIL_COMMENT.NOT_MEET_DATA_TYPE_SPECIFICATION');
+  });
+
+  it('should throw error when likeCount is missing or not a number', () => {
+    // Arrange
+    const payload = {
+      id: 'comment-123',
+      username: 'dicoding',
+      date: '2021-08-08T07:22:33.555Z',
+      content: 'sebuah comment',
+      isDelete: false,
+      replies: [],
+    };
+
+    // Action and Assert
+    expect(() => new DetailComment(payload)).toThrowError('DETAIL_COMMENT.NOT_CONTAIN_NEEDED_PROPERTY');
+    expect(() => new DetailComment({ ...payload, likeCount: '2' })).toThrowError('DETAIL_COMMENT.NOT_MEET_DATA_TYPE_SPECIFICATION');
+  });
+
+  it('should accept zero likeCount', () => {
+    // Arrange
+    const payload = {
+      id: 'comment-123',
+      username: 'dicoding',
+      date: '2021-08-08T07:22:33.555Z',
+      content: 'sebuah comment',
+      isDelete: false,
+      likeCount: 0,
+      replies: [],
+    };
+
+    // Action
+    const detailComment = new DetailComment(payload);
+
+    // Assert
+    expect(detailComment.likeCount).toEqual(0);
   });
 
   it('should create detailComment object with original content when not deleted', () => {
@@ -53,6 +90,7 @@ describe('a DetailComment entity', () => {
       date: '2021-08-08T07:22:33.555Z',
       content: 'sebuah comment',
       isDelete: false,
+      likeCount: 2,
       replies: [],
     };
 
@@ -64,8 +102,9 @@ describe('a DetailComment entity', () => {
     expect(detailComment.username).toEqual('dicoding');
     expect(detailComment.date).toEqual('2021-08-08T07:22:33.555Z');
     expect(detailComment.content).toEqual('sebuah comment');
+    expect(detailComment.likeCount).toEqual(2);
     expect(detailComment.replies).toEqual([]);
-    expect(Object.keys(detailComment)).toEqual(['id', 'username', 'date', 'content', 'replies']);
+    expect(Object.keys(detailComment)).toEqual(['id', 'username', 'date', 'content', 'likeCount', 'replies']);
   });
 
   it('should replace content when comment is deleted', () => {
@@ -76,6 +115,7 @@ describe('a DetailComment entity', () => {
       date: '2021-08-08T07:22:33.555Z',
       content: 'sebuah comment',
       isDelete: true,
+      likeCount: 0,
       replies: [],
     };
 
