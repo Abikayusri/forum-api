@@ -22,6 +22,7 @@ class GetThreadDetailUseCase {
         date: comment.date,
         content: comment.content,
         isDelete: comment.isDelete,
+        likeCount: comment.likeCount,
         replies: replies
           .filter((reply) => reply.commentId === comment.id)
           .map((reply) => new DetailReply({

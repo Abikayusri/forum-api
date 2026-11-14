@@ -5,6 +5,7 @@ import UsersTableTestHelper from '../../../../tests/UsersTableTestHelper.js';
 import AuthenticationsTableTestHelper from '../../../../tests/AuthenticationsTableTestHelper.js';
 import ThreadsTableTestHelper from '../../../../tests/ThreadsTableTestHelper.js';
 import CommentsTableTestHelper from '../../../../tests/CommentsTableTestHelper.js';
+import LikesTableTestHelper from '../../../../tests/LikesTableTestHelper.js';
 import RepliesTableTestHelper from '../../../../tests/RepliesTableTestHelper.js';
 import ServerTestHelper from '../../../../tests/ServerTestHelper.js';
 import container from '../../container.js';
@@ -21,6 +22,7 @@ describe('HTTP server', () => {
   });
 
   afterEach(async () => {
+    await LikesTableTestHelper.cleanTable();
     await RepliesTableTestHelper.cleanTable();
     await CommentsTableTestHelper.cleanTable();
     await ThreadsTableTestHelper.cleanTable();
@@ -834,6 +836,89 @@ describe('HTTP server', () => {
       expect(comment.replies[0].username).toEqual('dicoding');
       expect(typeof comment.replies[0].date).toEqual('string');
       expect(comment.replies[1].content).toEqual('balasan kedua');
+    });
+  });
+
+  describe('when PUT /threads/{threadId}/comments/{commentId}/likes', () => {
+    const addThreadWithComment = async (app, accessToken) => {
+      const threadResponse = await request(app)
+        .post('/threads')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ title: 'sebuah thread', body: 'sebuah body thread' });
+      const threadId = threadResponse.body.data.addedThread.id;
+      const commentResponse = await request(app)
+        .post(`/threads/${threadId}/comments`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({ content: 'sebuah comment' });
+      return { threadId, commentId: commentResponse.body.data.addedComment.id };
+    };
+
+    it('should response 401 when request without access token', async () => {
+      // Arrange
+      const app = await createServer(container);
+
+      // Action
+      const response = await request(app).put('/threads/thread-123/comments/comment-123/likes');
+
+      // Assert
+      expect(response.status).toEqual(401);
+      expect(response.body.message).toEqual('Missing authentication');
+    });
+
+    it('should response 404 when thread not found', async () => {
+      // Arrange
+      const app = await createServer(container);
+      const accessToken = await ServerTestHelper.getAccessToken(app);
+
+      // Action
+      const response = await request(app)
+        .put('/threads/thread-xxx/comments/comment-123/likes')
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      // Assert
+      expect(response.status).toEqual(404);
+      expect(response.body.status).toEqual('fail');
+      expect(response.body.message).toEqual('thread tidak ditemukan');
+    });
+
+    it('should response 404 when comment not found', async () => {
+      // Arrange
+      const app = await createServer(container);
+      const accessToken = await ServerTestHelper.getAccessToken(app);
+      const { threadId } = await addThreadWithComment(app, accessToken);
+
+      // Action
+      const response = await request(app)
+        .put(`/threads/${threadId}/comments/comment-xxx/likes`)
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      // Assert
+      expect(response.status).toEqual(404);
+      expect(response.body.status).toEqual('fail');
+      expect(response.body.message).toEqual('komentar tidak ditemukan');
+    });
+
+    it('should response 200 and toggle like, shown as likeCount in thread detail', async () => {
+      // Arrange
+      const app = await createServer(container);
+      const dicodingToken = await ServerTestHelper.getAccessToken(app);
+      const johndoeToken = await ServerTestHelper.getAccessToken(app, { username: 'johndoe', fullname: 'John Doe' });
+      const { threadId, commentId } = await addThreadWithComment(app, dicodingToken);
+      const likeUrl = `/threads/${threadId}/comments/${commentId}/likes`;
+
+      // Action
+      const firstLike = await request(app).put(likeUrl).set('Authorization', `Bearer ${dicodingToken}`);
+      await request(app).put(likeUrl).set('Authorization', `Bearer ${johndoeToken}`);
+      const likedDetail = await request(app).get(`/threads/${threadId}`);
+      const unlike = await request(app).put(likeUrl).set('Authorization', `Bearer ${johndoeToken}`);
+      const unlikedDetail = await request(app).get(`/threads/${threadId}`);
+
+      // Assert
+      expect(firstLike.status).toEqual(200);
+      expect(firstLike.body).toEqual({ status: 'success' });
+      expect(unlike.status).toEqual(200);
+      expect(likedDetail.body.data.thread.comments[0].likeCount).toEqual(2);
+      expect(unlikedDetail.body.data.thread.comments[0].likeCount).toEqual(1);
     });
   });
 
